@@ -36,6 +36,13 @@ def init_db():
             docs TEXT
         )
     ''')
+    
+    # Migración automática por si la tabla ya existía en versiones anteriores
+    try:
+        cursor.execute("ALTER TABLE solicitudes ADD COLUMN curso_acreditado TEXT")
+    except sqlite3.OperationalError:
+        pass # La columna ya existe
+
     conn.commit()
     conn.close()
 
@@ -219,7 +226,7 @@ def reporte_mensual():
 
         df = pd.DataFrame(datos)
         
-        # Generar reporte Excel directamente en memoria RAM usando BytesIO
+        # Generar Excel en memoria RAM con BytesIO
         output = io.BytesIO()
         with pd.ExcelWriter(output, engine='openpyxl') as writer:
             df.to_excel(writer, index=False, sheet_name='Reporte Mensual')
