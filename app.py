@@ -2,6 +2,7 @@ from flask import Flask, render_template, request, jsonify, session, send_from_d
 import sqlite3
 import os
 import json
+import io
 import pandas as pd
 from datetime import datetime
 from werkzeug.utils import secure_filename
@@ -189,37 +190,50 @@ def reporte_mensual():
     if not mes_anio:
         return jsonify({'error': 'Mes no especificado'}), 400
 
-    conn = sqlite3.connect('conoca.db')
-    cursor = conn.cursor()
-    cursor.execute('''
-        SELECT zona, rpe, nombre, cat_actual, cat_impacta, curso_acreditado, evaluacion, alto_riesgo, cumple_bateria, fecha_registro, estatus 
-        FROM solicitudes WHERE fecha_registro LIKE ?
-    ''', (f"{mes_anio}%",))
-    
-    rows = cursor.fetchall()
-    conn.close()
+    try:
+        conn = sqlite3.connect('conoca.db')
+        cursor = conn.cursor()
+        cursor.execute('''
+            SELECT zona, rpe, nombre, cat_actual, cat_impacta, curso_acreditado, evaluacion, alto_riesgo, cumple_bateria, fecha_registro, estatus 
+            FROM solicitudes WHERE fecha_registro LIKE ?
+        ''', (f"{mes_anio}%",))
+        
+        rows = cursor.fetchall()
+        conn.close()
 
-    datos = []
-    for r in rows:
-        datos.append({
-            'Zona': r[0],
-            'RPE': r[1],
-            'Empleado': r[2],
-            'Categoría Actual': r[3],
-            'Categoría Impacta': r[4],
-            'Curso Acreditado': r[5],
-            'Evaluación': r[6],
-            'Alto Riesgo': r[7],
-            'Cumple Bateria': r[8],
-            'Fecha Registro': r[9],
-            'Estatus': r[10]
-        })
+        datos = []
+        for r in rows:
+            datos.append({
+                'Zona': r[0],
+                'RPE': r[1],
+                'Empleado': r[2],
+                'Categoría Actual': r[3],
+                'Categoría Impacta': r[4],
+                'Curso Acreditado': r[5],
+                'Evaluación': r[6],
+                'Alto Riesgo': r[7],
+                'Cumple Bateria': r[8],
+                'Fecha Registro': r[9],
+                'Estatus': r[10]
+            })
 
-    df = pd.DataFrame(datos)
-    filepath = os.path.join(app.config['UPLOAD_FOLDER'], f"Reporte_CONOCA_{mes_anio}.xlsx")
-    df.to_excel(filepath, index=False)
+        df = pd.DataFrame(datos)
+        
+        # Generar reporte Excel directamente en memoria RAM usando BytesIO
+        output = io.BytesIO()
+        with pd.ExcelWriter(output, engine='openpyxl') as writer:
+            df.to_excel(writer, index=False, sheet_name='Reporte Mensual')
+        output.seek(0)
 
-    return send_file(filepath, as_attachment=True)
+        filename = f"Reporte_CONOCA_{mes_anio}.xlsx"
+        return send_file(
+            output,
+            mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            as_attachment=True,
+            download_name=filename
+        )
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 @app.route('/api/validar/<int:id>', methods=['POST'])
 def validar_solicitud(id):
