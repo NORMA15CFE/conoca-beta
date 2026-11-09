@@ -35,6 +35,18 @@ def init_db():
             docs TEXT
         )
     ''')
+    
+    # Asegurar compatibilidad automática si la tabla ya existía
+    try:
+        cursor.execute("ALTER TABLE solicitudes ADD COLUMN curso_acreditado TEXT")
+    except sqlite3.OperationalError:
+        pass
+        
+    try:
+        cursor.execute("ALTER TABLE solicitudes ADD COLUMN cumple_bateria TEXT")
+    except sqlite3.OperationalError:
+        pass
+
     conn.commit()
     conn.close()
 
@@ -105,9 +117,7 @@ def gestionar_solicitudes():
             alto_riesgo = request.form.get('altoRiesgo')
             cumple_bateria = request.form.get('cumpleBateria')
             
-            # Fecha estricta para control por mes de creación (YYYY-MM-DD)
             fecha_registro = datetime.now().strftime('%Y-%m-%d')
-            
             datos_reg = request.form.get('datosReg', '{}')
             
             nombres_archivos = {}
@@ -120,7 +130,6 @@ def gestionar_solicitudes():
 
             archivos_json = json.dumps(nombres_archivos)
             
-            # Cantidad de documentos a validar según tipo de evaluación + PDF de batería opcional
             num_docs = 3 if evaluacion == 'Teórica' else 4
             if cumple_bateria == 'SÍ':
                 num_docs += 1
@@ -185,13 +194,12 @@ def reporte_mensual():
     if session.get('rol') != 'ADMIN':
         return jsonify({'error': 'Acceso denegado'}), 403
 
-    mes_anio = request.args.get('mes') # Formato 'YYYY-MM'
+    mes_anio = request.args.get('mes')
     if not mes_anio:
         return jsonify({'error': 'Mes no especificado'}), 400
 
     conn = sqlite3.connect('conoca.db')
     cursor = conn.cursor()
-    # Filtrado estricto por mes de creación de la solicitud
     cursor.execute('''
         SELECT zona, rpe, nombre, cat_actual, cat_impacta, curso_acreditado, evaluacion, alto_riesgo, cumple_bateria, fecha_registro, estatus 
         FROM solicitudes WHERE fecha_registro LIKE ?
