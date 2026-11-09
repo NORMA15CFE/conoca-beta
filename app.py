@@ -6,7 +6,7 @@ from datetime import datetime
 import openpyxl
 
 app = Flask(__name__)
-app.secret_key = 'clave_secreta_conoca_cfe'
+app.secret_key = 'clave_secreta_conoca_cfe_2026'
 
 UPLOAD_FOLDER = 'uploads'
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
@@ -32,7 +32,7 @@ def init_db():
         )
     ''')
     
-    # Migraciones automáticas por si faltan columnas en bases de datos existentes
+    # Migraciones automáticas seguras para columnas nuevas
     cursor.execute("PRAGMA table_info(expedientes)")
     columnas = [col[1] for col in cursor.fetchall()]
     if 'curso_acreditado' not in columnas:
@@ -53,7 +53,7 @@ def index():
 
 @app.route('/login', methods=['POST'])
 def login():
-    usuario = request.form.get('usuario')
+    usuario = request.form.get('usuario') or request.form.get('zona')
     password = request.form.get('password')
     if usuario and password:
         session['usuario'] = usuario
