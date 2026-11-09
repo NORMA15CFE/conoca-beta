@@ -21,8 +21,6 @@
         .card-header h3 { color: #006837; }
         .btn-primario { background-color: #006837; color: white; border: none; padding: 10px 18px; border-radius: 5px; font-weight: bold; cursor: pointer; }
         .btn-primario:hover { background-color: #004d28; }
-        .btn-reporte { background-color: #0275d8; color: white; border: none; padding: 10px 18px; border-radius: 5px; font-weight: bold; cursor: pointer; }
-        .btn-reporte:hover { background-color: #025aa5; }
         table { width: 100%; border-collapse: collapse; margin-top: 10px; }
         th, td { padding: 12px 10px; text-align: left; border-bottom: 1px solid #ddd; font-size: 12px; }
         th { background-color: #333; color: white; }
@@ -65,10 +63,7 @@
         <div class="card" id="panelAcciones">
             <div class="card-header">
                 <h3 id="tituloPanel">Gestión de Acreditaciones</h3>
-                <div style="display: flex; gap: 10px;">
-                    <button class="btn-primario" onclick="abrirModalSolicitud()">+ Nueva Solicitud</button>
-                    <button class="btn-reporte" id="btnReporteExcel" style="display: none;" onclick="abrirModalReporte()">📥 Generar Reporte Mensual</button>
-                </div>
+                <button class="btn-primario" onclick="abrirModalSolicitud()">+ Nueva Solicitud</button>
             </div>
             <p style="color: #666; font-size: 14px;" id="subtituloPanel">Registra al personal para acreditación.</p>
             
@@ -101,7 +96,6 @@
                         <th>Empleado</th>
                         <th>Cat. Actual</th>
                         <th>Cat. Impacta</th>
-                        <th>Curso Acreditado</th>
                         <th>Evaluación</th>
                         <th>Alto Riesgo</th>
                         <th>Batería Constancia</th>
@@ -126,10 +120,6 @@
                 <div class="form-group"><label>Nombre Completo del Empleado:</label><input type="text" id="nombreEmpleado" required></div>
                 <div class="form-group"><label>Categoría Actual:</label><select id="catActual" required><option value="" disabled selected>-- Seleccione Categoría --</option></select></div>
                 <div class="form-group"><label>Categoría Impacta:</label><select id="catImpacta" required><option value="" disabled selected>-- Seleccione Categoría Impacto --</option></select></div>
-                
-                <!-- Campo Curso Acreditado -->
-                <div class="form-group"><label>Curso Acreditado:</label><input type="text" id="cursoAcreditado" placeholder="Ej. Curso de Maniobras en Media Tensión" required></div>
-
                 <div class="form-group">
                     <label>Tipo de Evaluación:</label>
                     <select id="tipoEvaluacion" onchange="actualizarCamposArchivos()" required>
@@ -149,9 +139,9 @@
                     </div>
                     <div class="form-group">
                         <label>¿Cumple batería para constancia?:</label>
-                        <select id="cumpleBateria" onchange="actualizarCamposArchivos()" required>
+                        <select id="cumpleBateria" required>
                             <option value="SÍ">SÍ</option>
-                            <option value="NO" selected>NO</option>
+                            <option value="NO">NO</option>
                         </select>
                     </div>
                 </div>
@@ -159,21 +149,6 @@
                 <div id="contenedorArchivosDinamicos"></div>
                 <button type="submit" class="btn-primario" style="width: 100%; margin-top: 10px;">Enviar Solicitud</button>
             </form>
-        </div>
-    </div>
-
-    <!-- MODAL REPORTE MENSUAL -->
-    <div class="modal" id="modalReporte">
-        <div class="modal-content" style="width: 450px;">
-            <div class="modal-header">
-                <h3>Generar Reporte Excel Mensual</h3>
-                <button class="close-btn" onclick="cerrarModalReporte()">&times;</button>
-            </div>
-            <div class="form-group">
-                <label>Seleccione Mes y Año del Reporte:</label>
-                <input type="month" id="inputMesReporte" required>
-            </div>
-            <button class="btn-reporte" style="width: 100%; margin-top: 10px;" onclick="descargarReporteExcel()">Descargar Excel</button>
         </div>
     </div>
 
@@ -263,7 +238,6 @@
                 document.getElementById('tituloPanel').innerText = 'Panel General de Divisionales (Administración)';
                 document.getElementById('subtituloPanel').innerText = 'Revisión y validación de expedientes de todas las zonas.';
                 document.getElementById('contenedorFiltro').style.display = 'flex';
-                document.getElementById('btnReporteExcel').style.display = 'inline-block';
             }
 
             const selA = document.getElementById('catActual');
@@ -283,20 +257,13 @@
 
         function abrirModalSolicitud() { document.getElementById('modalSolicitud').style.display = 'flex'; actualizarCamposArchivos(); }
         function cerrarModalSolicitud() { document.getElementById('modalSolicitud').style.display = 'none'; }
-        
-        function abrirModalReporte() { document.getElementById('modalReporte').style.display = 'flex'; }
-        function cerrarModalReporte() { document.getElementById('modalReporte').style.display = 'none'; }
 
         function actualizarCamposArchivos() {
             const tipo = document.getElementById('tipoEvaluacion').value;
-            const cumpleBateria = document.getElementById('cumpleBateria').value;
             const cont = document.getElementById('contenedorArchivosDinamicos');
             
-            if (!tipo) { cont.innerHTML = ''; return; }
-
-            let html = '';
             if (tipo === 'Teórica') {
-                html = `
+                cont.innerHTML = `
                     <div class="seccion-bloque-solicitud">
                         <h4>1. Examen Teórico (Con firma y nombres)</h4>
                         <div class="grid-campos">
@@ -315,7 +282,7 @@
                     </div>
                 `;
             } else if (tipo === 'Teórica y Práctica') {
-                html = `
+                cont.innerHTML = `
                     <div class="seccion-bloque-solicitud">
                         <h4>1. Examen Teórico (Con firma y nombres)</h4>
                         <div class="grid-campos">
@@ -342,17 +309,6 @@
                     </div>
                 `;
             }
-
-            if (cumpleBateria === 'SÍ') {
-                html += `
-                    <div class="seccion-bloque-solicitud" style="border-color: #f0ad4e;">
-                        <h4 style="color: #f0ad4e; border-color: #f0ad4e;">Constancia de Batería (PDF Adicional)</h4>
-                        <div class="form-group" style="margin-top:10px;"><label>Archivo PDF (Constancia de Batería):</label><input type="file" id="file_constanciaBateria" accept=".pdf" required></div>
-                    </div>
-                `;
-            }
-
-            cont.innerHTML = html;
         }
 
         async function cargarSolicitudes() {
@@ -366,6 +322,8 @@
                 let badge = sol.estatus === 'Cumple' ? 'badge-cumple' : (sol.estatus === 'No cumple' ? 'badge-nocumple' : 'badge-validacion');
                 
                 let botonesAccion = `<button class="btn-primario" style="padding: 5px 10px; font-size: 11px;" onclick="abrirValidacion(${sol.id})">Revisar / Editar</button>`;
+                
+                // Tanto ADMIN como la ZONA dueña del registro pueden eliminar
                 if (rolUsuario === 'ADMIN' || sol.zona === zonaUsuario) {
                     botonesAccion += `<button style="padding: 5px 10px; background: #d9534f; color: white; border: none; border-radius: 3px; cursor: pointer; font-size: 11px; margin-left: 3px;" onclick="eliminar(${sol.id})">Eliminar</button>`;
                 }
@@ -377,7 +335,6 @@
                         <td>${sol.nombre}</td>
                         <td>${sol.catActual}</td>
                         <td>${sol.catImpacta}</td>
-                        <td>${sol.cursoAcreditado || 'N/A'}</td>
                         <td>${sol.evaluacion}</td>
                         <td><b>${sol.alto_riesgo}</b></td>
                         <td><b>${sol.cumpleBateria}</b></td>
@@ -395,7 +352,6 @@
             formData.append('nombre', document.getElementById('nombreEmpleado').value);
             formData.append('catActual', document.getElementById('catActual').value);
             formData.append('catImpacta', document.getElementById('catImpacta').value);
-            formData.append('cursoAcreditado', document.getElementById('cursoAcreditado').value);
             formData.append('tipoEvaluacion', document.getElementById('tipoEvaluacion').value);
             formData.append('altoRiesgo', document.getElementById('altoRiesgo').value);
             formData.append('cumpleBateria', document.getElementById('cumpleBateria').value);
@@ -416,8 +372,6 @@
             if (f3 && f3.files[0]) formData.append('file_evidenciaFoto', f3.files[0]);
             const f4 = document.getElementById('file_dc3');
             if (f4 && f4.files[0]) formData.append('file_dc3', f4.files[0]);
-            const f5 = document.getElementById('file_constanciaBateria');
-            if (f5 && f5.files[0]) formData.append('file_constanciaBateria', f5.files[0]);
 
             const res = await fetch('/api/solicitudes', { method: 'POST', body: formData });
             const result = await res.json();
@@ -432,16 +386,6 @@
             }
         });
 
-        async function descargarReporteExcel() {
-            const mesAnio = document.getElementById('inputMesReporte').value;
-            if (!mesAnio) {
-                alert('Por favor selecciona un mes y año.');
-                return;
-            }
-            window.location.href = `/api/reporte-mensual?mes=${mesAnio}`;
-            cerrarModalReporte();
-        }
-
         function abrirValidacion(id) {
             idValidando = id;
             let sol = listaSolicitudesGlobal.find(s => s.id === id);
@@ -454,8 +398,10 @@
             let dReg = sol.datosReg || {};
             let docs = sol.docs || [];
             let archivos = sol.archivos || {};
+
             let esAdmin = (rolUsuario === 'ADMIN');
 
+            // Definir los bloques según el tipo de evaluación
             let bloques = [];
             if (sol.evaluacion === 'Teórica') {
                 bloques = [
@@ -472,25 +418,23 @@
                 ];
             }
 
-            if (sol.cumpleBateria === 'SÍ') {
-                bloques.push({ titulo: `Constancia de Batería`, key: 'constanciaBateria', index: bloques.length });
-            }
-
             bloques.forEach(b => {
                 let nombreArchivo = archivos[b.key] || 'No adjunto';
                 let estatusDoc = docs[b.index] || 'Pendiente';
+                
                 let badgeColor = estatusDoc === 'Cumple' ? 'color: #5cb85c;' : (estatusDoc === 'No cumple' ? 'color: #d9534f;' : 'color: #f0ad4e;');
 
                 let htmlBloque = `
                     <div class="seccion-bloque-solicitud">
                         <h4>${b.titulo}</h4>
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 8px;">
-                            <a href="/uploads/${nombreArchivo}" target="_blank" style="color: #006837; font-weight: bold; font-size: 13px; text-decoration: none;">📄 Ver Archivo (${nombreArchivo})</a>
+                            <a href="/uploads/${nombreArchivo}" target="_blank" style="color: #006837; font-weight: bold; font-size: 13px; text-decoration: none;">📄 Ver Archivo Actual (${nombreArchivo})</a>
                             <span style="font-size: 12px; font-weight: bold; ${badgeColor}">Estatus: ${estatusDoc}</span>
                         </div>
                 `;
 
                 if (esAdmin) {
+                    // Vista Admin: Selector para calificar VoBo
                     htmlBloque += `
                         <div class="form-group" style="margin-top: 10px;">
                             <label>Cambiar VoBo / Estatus:</label>
@@ -502,6 +446,7 @@
                         </div>
                     `;
                 } else {
+                    // Vista Zona: Input para re-subir archivo si no cumple o quiere corregir
                     htmlBloque += `
                         <div class="form-group" style="margin-top: 10px;">
                             <label style="color: #d9534f;">Re-subir archivo corregido (PDF):</label>
@@ -509,6 +454,7 @@
                         </div>
                     `;
                 }
+
                 htmlBloque += `</div>`;
                 cont.innerHTML += htmlBloque;
             });
@@ -541,19 +487,23 @@
 
         async function guardarCorreccionZona(id) {
             const formData = new FormData();
-            ['examenTeorico', 'examenPractico', 'evidenciaFoto', 'dc3', 'constanciaBateria'].forEach(k => {
+            ['examenTeorico', 'examenPractico', 'evidenciaFoto', 'dc3'].forEach(k => {
                 const input = document.getElementById('nuevo_file_' + k);
                 if (input && input.files[0]) {
                     formData.append('file_' + k, input.files[0]);
                 }
             });
 
-            const res = await fetch(`/api/actualizar_archivo/${id}`, { method: 'POST', body: formData });
+            const res = await fetch(`/api/actualizar_archivo/${id}`, {
+                method: 'POST',
+                body: formData
+            });
+
             const result = await res.json();
             if (result.success) {
                 cerrarValidacion();
                 cargarSolicitudes();
-                alert('¡Archivos corregidos subidos con éxito!');
+                alert('¡Archivos corregidos subidos con éxito! El expediente pasó a validación.');
             } else {
                 alert('Error al subir archivo: ' + result.error);
             }
@@ -567,7 +517,7 @@
                     cargarSolicitudes();
                     alert('Registro eliminado correctamente.');
                 } else {
-                    alert('No autorizado.');
+                    alert('No autorizado para eliminar este registro.');
                 }
             }
         }

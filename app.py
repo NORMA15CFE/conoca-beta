@@ -1,9 +1,7 @@
-from flask import Flask, render_template, request, jsonify, session, send_from_directory, send_file
+from flask import Flask, render_template, request, jsonify, session, send_from_directory
 import sqlite3
 import os
 import json
-import pandas as pd
-from datetime import datetime
 from werkzeug.utils import secure_filename
 
 app = Flask(__name__)
@@ -24,29 +22,15 @@ def init_db():
             nombre TEXT,
             cat_actual TEXT,
             cat_impacta TEXT,
-            curso_acreditado TEXT,
             evaluacion TEXT,
             alto_riesgo TEXT,
             cumple_bateria TEXT,
-            fecha_registro TEXT,
             estatus TEXT,
             datos_reg TEXT,
             archivos TEXT,
             docs TEXT
         )
     ''')
-    
-    # Asegurar compatibilidad automática si la tabla ya existía
-    try:
-        cursor.execute("ALTER TABLE solicitudes ADD COLUMN curso_acreditado TEXT")
-    except sqlite3.OperationalError:
-        pass
-        
-    try:
-        cursor.execute("ALTER TABLE solicitudes ADD COLUMN cumple_bateria TEXT")
-    except sqlite3.OperationalError:
-        pass
-
     conn.commit()
     conn.close()
 
@@ -67,16 +51,16 @@ def login():
     pass_ingresada = data.get('pass')
 
     passwords_validas = {
-        'DJ000': 'DJ000',
-        'DJ010': 'DJ010',
-        'DJ020': 'DJ020',
-        'DJ030': 'DJ030',
-        'DJ060': 'DJ060',
-        'DJ070': 'DJ070',
-        'DJ100': 'DJ100',
-        'DJ110': 'DJ110',
-        'DJ130': 'DJ130',
-        'DJ140': 'DJ140'
+        'DJ000': 'DJ000',  # Administrador (Divisionales)
+        'DJ010': 'DJ010',  # Poza Rica
+        'DJ020': 'DJ020',  # Xalapa
+        'DJ030': 'DJ030',  # Teziutlán
+        'DJ060': 'DJ060',  # Veracruz
+        'DJ070': 'DJ070',  # Papaloapan
+        'DJ100': 'DJ100',  # Los Tuxtlas
+        'DJ110': 'DJ110',  # Coatzacoalcos
+        'DJ130': 'DJ130',  # Orizaba
+        'DJ140': 'DJ140'   # Córdoba
     }
 
     if zona in passwords_validas and passwords_validas[zona] == pass_ingresada:
@@ -112,12 +96,10 @@ def gestionar_solicitudes():
             nombre = request.form.get('nombre')
             cat_actual = request.form.get('catActual')
             cat_impacta = request.form.get('catImpacta')
-            curso_acreditado = request.form.get('cursoAcreditado', '')
             evaluacion = request.form.get('tipoEvaluacion')
             alto_riesgo = request.form.get('altoRiesgo')
             cumple_bateria = request.form.get('cumpleBateria')
             
-            fecha_registro = datetime.now().strftime('%Y-%m-%d')
             datos_reg = request.form.get('datosReg', '{}')
             
             nombres_archivos = {}
@@ -129,17 +111,13 @@ def gestionar_solicitudes():
                     nombres_archivos[key.replace('file_', '')] = filename
 
             archivos_json = json.dumps(nombres_archivos)
-            
             num_docs = 3 if evaluacion == 'Teórica' else 4
-            if cumple_bateria == 'SÍ':
-                num_docs += 1
-
             docs_iniciales = json.dumps(['Pendiente'] * num_docs)
 
             cursor.execute('''
-                INSERT INTO solicitudes (zona, rpe, nombre, cat_actual, cat_impacta, curso_acreditado, evaluacion, alto_riesgo, cumple_bateria, fecha_registro, estatus, datos_reg, archivos, docs)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            ''', (zona, rpe, nombre, cat_actual, cat_impacta, curso_acreditado, evaluacion, alto_riesgo, cumple_bateria, fecha_registro, 'En validación', datos_reg, archivos_json, docs_iniciales))
+                INSERT INTO solicitudes (zona, rpe, nombre, cat_actual, cat_impacta, evaluacion, alto_riesgo, cumple_bateria, estatus, datos_reg, archivos, docs)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ''', (zona, rpe, nombre, cat_actual, cat_impacta, evaluacion, alto_riesgo, cumple_bateria, 'En validación', datos_reg, archivos_json, docs_iniciales))
             
             conn.commit()
             conn.close()
@@ -152,18 +130,14 @@ def gestionar_solicitudes():
     zona_actual = session['zona']
     zona_filtro = request.args.get('zona', 'TODAS')
 
-    query = 'SELECT id, zona, rpe, nombre, cat_actual, cat_impacta, curso_acreditado, evaluacion, alto_riesgo, cumple_bateria, fecha_registro, estatus, datos_reg, archivos, docs FROM solicitudes'
-    params = []
-
     if rol == 'ADMIN':
         if zona_filtro != 'TODAS':
-            query += ' WHERE zona = ?'
-            params.append(zona_filtro)
+            cursor.execute('SELECT id, zona, rpe, nombre, cat_actual, cat_impacta, evaluacion, alto_riesgo, cumple_bateria, estatus, datos_reg, archivos, docs FROM solicitudes WHERE zona = ?', (zona_filtro,))
+        else:
+            cursor.execute('SELECT id, zona, rpe, nombre, cat_actual, cat_impacta, evaluacion, alto_riesgo, cumple_bateria, estatus, datos_reg, archivos, docs FROM solicitudes')
     else:
-        query += ' WHERE zona = ?'
-        params.append(zona_actual)
+        cursor.execute('SELECT id, zona, rpe, nombre, cat_actual, cat_impacta, evaluacion, alto_riesgo, cumple_bateria, estatus, datos_reg, archivos, docs FROM solicitudes WHERE zona = ?', (zona_actual,))
 
-    cursor.execute(query, params)
     rows = cursor.fetchall()
     conn.close()
 
@@ -176,59 +150,16 @@ def gestionar_solicitudes():
             'nombre': row[3],
             'catActual': row[4],
             'catImpacta': row[5],
-            'cursoAcreditado': row[6],
-            'evaluacion': row[7],
-            'alto_riesgo': row[8],
-            'cumpleBateria': row[9],
-            'fechaRegistro': row[10],
-            'estatus': row[11],
-            'datosReg': json.loads(row[12]) if row[12] else {},
-            'archivos': json.loads(row[13]) if row[13] else {},
-            'docs': json.loads(row[14]) if row[14] else []
+            'evaluacion': row[6],
+            'alto_riesgo': row[7],
+            'cumpleBateria': row[8],
+            'estatus': row[9],
+            'datosReg': json.loads(row[10]) if row[10] else {},
+            'archivos': json.loads(row[11]) if row[11] else {},
+            'docs': json.loads(row[12]) if row[12] else []
         })
 
     return jsonify(resultado)
-
-@app.route('/api/reporte-mensual', methods=['GET'])
-def reporte_mensual():
-    if session.get('rol') != 'ADMIN':
-        return jsonify({'error': 'Acceso denegado'}), 403
-
-    mes_anio = request.args.get('mes')
-    if not mes_anio:
-        return jsonify({'error': 'Mes no especificado'}), 400
-
-    conn = sqlite3.connect('conoca.db')
-    cursor = conn.cursor()
-    cursor.execute('''
-        SELECT zona, rpe, nombre, cat_actual, cat_impacta, curso_acreditado, evaluacion, alto_riesgo, cumple_bateria, fecha_registro, estatus 
-        FROM solicitudes WHERE fecha_registro LIKE ?
-    ''', (f"{mes_anio}%",))
-    
-    rows = cursor.fetchall()
-    conn.close()
-
-    datos = []
-    for r in rows:
-        datos.append({
-            'Zona': r[0],
-            'RPE': r[1],
-            'Empleado': r[2],
-            'Categoría Actual': r[3],
-            'Categoría Impacta': r[4],
-            'Curso Acreditado': r[5],
-            'Evaluación': r[6],
-            'Alto Riesgo': r[7],
-            'Cumple Bateria': r[8],
-            'Fecha Registro': r[9],
-            'Estatus': r[10]
-        })
-
-    df = pd.DataFrame(datos)
-    filepath = os.path.join(app.config['UPLOAD_FOLDER'], f"Reporte_CONOCA_{mes_anio}.xlsx")
-    df.to_excel(filepath, index=False)
-
-    return send_file(filepath, as_attachment=True)
 
 @app.route('/api/validar/<int:id>', methods=['POST'])
 def validar_solicitud(id):
@@ -273,17 +204,22 @@ def actualizar_archivo(id):
         conn.close()
         return jsonify({'error': 'No autorizado'}), 403
 
+    # Guardar nuevo archivo subido
     for key in request.files:
         file = request.files[key]
         if file and file.filename != '':
             filename = secure_filename(file.filename)
             file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
             
+            # Identificar qué archivo se está actualizando (ej. examenTeorico, evidenciaFoto, dc3, etc.)
             doc_key = key.replace('file_', '')
             archivos_actuales[doc_key] = filename
 
-            if len(docs_actuales) > 0:
-                docs_actuales[0] = 'Pendiente'
+            # Al actualizar el archivo, el estatus de ese documento específico regresa a 'Pendiente' para nueva revisión del Admin
+            mapeo_indices = {'examenTeorico': 0, 'examenPractico': 1, 'evidenciaFoto': 2 if len(docs_actuales)>3 else 1, 'dc3': len(docs_actuales)-1}
+            idx = mapeo_indices.get(doc_key, 0)
+            if idx < len(docs_actuales):
+                docs_actuales[idx] = 'Pendiente'
 
     cursor.execute('UPDATE solicitudes SET archivos = ?, docs = ?, estatus = ? WHERE id = ?', 
                    (json.dumps(archivos_actuales), json.dumps(docs_actuales), 'En validación', id))
@@ -299,6 +235,8 @@ def eliminar_solicitud(id):
 
     conn = sqlite3.connect('conoca.db')
     cursor = conn.cursor()
+    
+    # Validar que la zona solo borre lo suyo (a menos que sea ADMIN)
     cursor.execute('SELECT zona FROM solicitudes WHERE id = ?', (id,))
     row = cursor.fetchone()
     if not row:
