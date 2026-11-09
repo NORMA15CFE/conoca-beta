@@ -105,7 +105,7 @@ def gestionar_solicitudes():
             alto_riesgo = request.form.get('altoRiesgo')
             cumple_bateria = request.form.get('cumpleBateria')
             
-            # Fecha actual para control estricto por mes y año (YYYY-MM-DD)
+            # Fecha estricta para control por mes de creación (YYYY-MM-DD)
             fecha_registro = datetime.now().strftime('%Y-%m-%d')
             
             datos_reg = request.form.get('datosReg', '{}')
@@ -120,10 +120,10 @@ def gestionar_solicitudes():
 
             archivos_json = json.dumps(nombres_archivos)
             
-            # Calcular número de documentos a validar según evaluación + constancia opcional
+            # Cantidad de documentos a validar según tipo de evaluación + PDF de batería opcional
             num_docs = 3 if evaluacion == 'Teórica' else 4
             if cumple_bateria == 'SÍ':
-                num_docs += 1 # PDF extra de constancia de batería
+                num_docs += 1
 
             docs_iniciales = json.dumps(['Pendiente'] * num_docs)
 
@@ -185,13 +185,13 @@ def reporte_mensual():
     if session.get('rol') != 'ADMIN':
         return jsonify({'error': 'Acceso denegado'}), 403
 
-    mes_anio = request.args.get('mes') # Formato esperado: 'YYYY-MM' (ej. 2026-11)
+    mes_anio = request.args.get('mes') # Formato 'YYYY-MM'
     if not mes_anio:
         return jsonify({'error': 'Mes no especificado'}), 400
 
     conn = sqlite3.connect('conoca.db')
     cursor = conn.cursor()
-    # Filtrar estrictamente por el mes y año en que se creó la solicitud
+    # Filtrado estricto por mes de creación de la solicitud
     cursor.execute('''
         SELECT zona, rpe, nombre, cat_actual, cat_impacta, curso_acreditado, evaluacion, alto_riesgo, cumple_bateria, fecha_registro, estatus 
         FROM solicitudes WHERE fecha_registro LIKE ?
@@ -274,9 +274,8 @@ def actualizar_archivo(id):
             doc_key = key.replace('file_', '')
             archivos_actuales[doc_key] = filename
 
-            # Marcar como pendiente el documento actualizado
             if len(docs_actuales) > 0:
-                docs_actuales[0] = 'Pendiente' # O índice dinámico según corresponda
+                docs_actuales[0] = 'Pendiente'
 
     cursor.execute('UPDATE solicitudes SET archivos = ?, docs = ?, estatus = ? WHERE id = ?', 
                    (json.dumps(archivos_actuales), json.dumps(docs_actuales), 'En validación', id))

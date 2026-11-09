@@ -127,7 +127,7 @@
                 <div class="form-group"><label>Categoría Actual:</label><select id="catActual" required><option value="" disabled selected>-- Seleccione Categoría --</option></select></div>
                 <div class="form-group"><label>Categoría Impacta:</label><select id="catImpacta" required><option value="" disabled selected>-- Seleccione Categoría Impacto --</option></select></div>
                 
-                <!-- CORRECCIÓN 2: Campo Curso Acreditado -->
+                <!-- Campo Curso Acreditado -->
                 <div class="form-group"><label>Curso Acreditado:</label><input type="text" id="cursoAcreditado" placeholder="Ej. Curso de Maniobras en Media Tensión" required></div>
 
                 <div class="form-group">
@@ -263,7 +263,7 @@
                 document.getElementById('tituloPanel').innerText = 'Panel General de Divisionales (Administración)';
                 document.getElementById('subtituloPanel').innerText = 'Revisión y validación de expedientes de todas las zonas.';
                 document.getElementById('contenedorFiltro').style.display = 'flex';
-                document.getElementById('btnReporteExcel').style.display = 'inline-block'; // Mostrar botón de reporte al Admin
+                document.getElementById('btnReporteExcel').style.display = 'inline-block';
             }
 
             const selA = document.getElementById('catActual');
@@ -343,7 +343,6 @@
                 `;
             }
 
-            // CORRECCIÓN 3: Si batería es SÍ, agregamos el bloque para subir el PDF de la constancia de batería
             if (cumpleBateria === 'SÍ') {
                 html += `
                     <div class="seccion-bloque-solicitud" style="border-color: #f0ad4e;">
